@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 var _ = net.Listen
@@ -34,12 +35,19 @@ func handleConnection(conn net.Conn) {
 	for {
 		buf := make([]byte, 1024)
 
-		_, err := conn.Read(buf)
+		n, err := conn.Read(buf)
 		if err != nil {
 			fmt.Println("Connection terminated")
 			os.Exit(1)
 		}
-		conn.Write([]byte("+PONG\r\n"))
-	}
 
+		command := strings.Split(string(buf[:n]), "\r\n")
+
+		switch strings.ToUpper(command[2]) {
+		case "PING":
+			conn.Write([]byte("+PONG\r\n"))
+		case "ECHO":
+			fmt.Fprintf(conn, "$%d\r\n%s\r\n", len(command[4]), command[4])
+		}
+	}
 }
